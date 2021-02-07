@@ -81,6 +81,9 @@ def create_map(lat_start: float, long_start: float, zoom: int,
     c_map = number
     c_image = number
 
+    # Writing coordinates to the file
+    f = open("coordinates.txt", "w+")
+
     """
     i = 0 -> Map View
     i = 1 -> Satellite View
@@ -123,6 +126,7 @@ def create_map(lat_start: float, long_start: float, zoom: int,
                 if i == 0:
                     # image.save(f"{outfile}-map-{row}-{col}.png")  # To save the row-col position uncomment
                     image.save(f"{outfile}-map-{c_map}.png")
+                    f.write(f"{outfile}-{c_map}.png -> Lat: {latitude} Long: {longitude} URL: {url} \n")
                     c_map += 1
                 else:
                     # image.save(f"{outfile}-{row}-{col}.png") # To save the row-col position uncomment
@@ -132,6 +136,7 @@ def create_map(lat_start: float, long_start: float, zoom: int,
     # Close the browser
     driver.close()
     driver.quit()
+    f.close()
 
 
 def js_code_execute(driver, js_string: str):

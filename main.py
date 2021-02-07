@@ -92,25 +92,27 @@ def create_map(lat_start: float, long_start: float, zoom: int,
                 latitude = lat_start + (lat_shift * row)
                 longitude = long_start + (long_shift * col)
 
+                url = 'https://www.google.com/maps/'
+
                 # Map URL
-                url = 'https://www.google.com/maps/@{lat},{long},{z}z'.format(lat=latitude, long=longitude, z=zoom)
-
+                if i == 0:
+                    url += '@{lat},{long},{z}z'.format(lat=latitude, long=longitude, z=zoom)
                 # Satellite URL
-                if i == 1:
-                    url = 'https://www.google.com/maps/@{lat},{long},{z}z/data=!3m1!1e3' \
-                        .format(lat=latitude,
-                                long=longitude,
-                                z=zoom)
+                elif i == 1:
+                    url += '@{lat},{long},{z}z/data=!3m1!1e3'.format(lat=latitude, long=longitude, z=zoom)
 
+                print("hh")
                 driver.get(url)
                 time.sleep(5)
 
                 # Remove labels from Satellite view
                 if i == 1:
+                    print("lol")
                     js_code_execute(driver, remove_labels[0])
                     time.sleep(3)
                     js_code_execute(driver, remove_labels[1])
 
+                # Remove fields from Map view
                 for j in remove_from_view:
                     js_code_execute(driver, j)
 
@@ -121,16 +123,17 @@ def create_map(lat_start: float, long_start: float, zoom: int,
                 # Scale image up or down if desired, then save in memory
                 image = scale_image(image, scale)
                 if i == 0:
-                    # image.save(f"{outfile}-map-{row}-{col}.png")
+                    # image.save(f"{outfile}-map-{row}-{col}.png")  # To save the row-col position uncomment
                     image.save(f"{outfile}-map-{c_map}.png")
                     c_map += 1
                 else:
-                    # image.save(f"{outfile}-{row}-{col}.png")
+                    # image.save(f"{outfile}-{row}-{col}.png") # To save the row-col position uncomment
                     image.save(f"{outfile}-{c_image}.png")
                     c_image += 1
 
-        driver.close()
-        driver.quit()
+    # Close the browser
+    driver.close()
+    driver.quit()
 
 
 def js_code_execute(driver, js_string: str):

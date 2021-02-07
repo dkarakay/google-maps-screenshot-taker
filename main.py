@@ -15,7 +15,7 @@ def create_map(lat_start: float, long_start: float, zoom: int,
                scale: float = 1, sleep_time: float = 0,
                offset_left: float = 0, offset_top: float = 0,
                offset_right: float = 0, offset_bottom: float = 0,
-               outfile: str = None, satellite: bool = False):
+               outfile: str = None, count: int = 0):
     """Create a big Google Map image from a grid of screenshots.
 
     ARGS:
@@ -56,77 +56,86 @@ def create_map(lat_start: float, long_start: float, zoom: int,
     # Calculate amount to shift lat/long each screenshot
     screen_width, screen_height = get_screen_resolution()
 
-
     lat_shift = calc_latitude_shift(screen_height,
                                     (offset_top + offset_bottom))
     print(f"Lat shift: {lat_shift}")
 
-    lat_shift =calc_latitude_shift(screen_height,(offset_top + offset_bottom)) * 1 / 5
+    lat_shift = calc_latitude_shift(screen_height, (offset_top + offset_bottom)) * 1 / 1.7 ** (zoom - 18)
     print(f"Lat shift: {lat_shift}")
 
     long_shift = calc_longitude_shift(screen_width,
-                                      (offset_left + offset_right)) * 1 / 5
+                                      (offset_left + offset_right)) * 1 / 1.7 ** (zoom - 18)
     print(f"Long shift: {long_shift}")
 
-    for i in range(2):
+    c_map = count
+    c_image = count
+    for i in range(0,1):
         for row in range(number_rows):
             for col in range(number_cols):
                 latitude = lat_start + (lat_shift * row)
                 longitude = long_start + (long_shift * col)
                 # Show the map using the Firefox driver
                 url = ('https://www.google.com/maps/@{lat},{long},{z}z').format(lat=latitude, long=longitude, z=zoom)
-                if i == 1:
-                    url = (
-                        'https://www.google.com/maps/@{lat},{long},{z}z/data=!3m1!1e3'
-                    ).format(lat=latitude, long=longitude, z=zoom)
+                if c_map >= 225 and c_map < 226:
+                    if i == 1:
+                        url = (
+                            'https://www.google.com/maps/@{lat},{long},{z}z/data=!3m1!1e3'
+                        ).format(lat=latitude, long=longitude, z=zoom)
 
-                driver.get(url)
-                time.sleep(5)
+                    driver.get(url)
+                    time.sleep(5)
 
-                if i == 1:
-                    js_string = "var element = document.getElementsByClassName(\"searchbox-hamburger-container\")[0];" \
-                                "element.getElementsByTagName(\"button\")[0].click();"
+                    if i == 1:
+                        js_string = "var element = document.getElementsByClassName(\"searchbox-hamburger-container\")[0];" \
+                                    "element.getElementsByTagName(\"button\")[0].click();"
+                        driver.execute_script(js_string)
+                        time.sleep(3)
+
+                        js_string = "var element = document.getElementsByClassName(\"widget-settings-earth-item\")[0];" \
+                                    "element.getElementsByTagName(\"button\")[1].click();"
+                        driver.execute_script(js_string)
+
+                    js_string = "var element = document.getElementById(\"omnibox-container\");element.remove();"
                     driver.execute_script(js_string)
-                    time.sleep(3)
-
-                    js_string = "var element = document.getElementsByClassName(\"widget-settings-earth-item\")[0];" \
-                                "element.getElementsByTagName(\"button\")[1].click();"
+                    js_string = "var element = document.getElementById(\"watermark\");element.remove();"
+                    driver.execute_script(js_string)
+                    js_string = "var element = document.getElementById(\"vasquette\");element.remove();"
+                    driver.execute_script(js_string)
+                    js_string = "var element = document.getElementsByClassName(\"app-viewcard-strip\");element[0].remove();"
                     driver.execute_script(js_string)
 
-                js_string = "var element = document.getElementById(\"omnibox-container\");element.remove();"
-                driver.execute_script(js_string)
-                js_string = "var element = document.getElementById(\"watermark\");element.remove();"
-                driver.execute_script(js_string)
-                js_string = "var element = document.getElementById(\"vasquette\");element.remove();"
-                driver.execute_script(js_string)
-                js_string = "var element = document.getElementsByClassName(\"app-viewcard-strip\");element[0].remove();"
-                driver.execute_script(js_string)
+                    js_string = "var element = document.getElementsByClassName(\"scene-footer-container\");element[0].remove();"
+                    driver.execute_script(js_string)
 
-                js_string = "var element = document.getElementsByClassName(\"scene-footer-container\");element[0].remove();"
-                driver.execute_script(js_string)
-
-                # Let the map load all assets before taking a screenshot
-                time.sleep(sleep_time)
-                image = screenshot(screen_width, screen_height,
-                                   offset_left, offset_top,
-                                   offset_right, offset_bottom)
-                # Scale image up or down if desired, then save in memory
-                image = scale_image(image, scale)
-                if i == 0:
-                    images_maps[row][col] = image
-                    image.save(f"{outfile}-map-{row}-{col}.png")
-                else:
-                    images_satellites[row][col] = image
-                    image.save(f"{outfile}-satellite-{row}-{col}.png")
+                    # Let the map load all assets before taking a screenshot
+                    time.sleep(sleep_time)
+                    image = screenshot(screen_width, screen_height,
+                                       offset_left, offset_top,
+                                       offset_right, offset_bottom)
+                    # Scale image up or down if desired, then save in memory
+                    image = scale_image(image, scale)
+                    if i == 0:
+                        images_maps[row][col] = image
+                        # image.save(f"{outfile}-map-{row}-{col}.png")
+                        image.save(f"{outfile}-map-{c_map}.png")
+                        c_map += 1
+                    else:
+                        images_satellites[row][col] = image
+                        # image.save(f"{outfile}-{row}-{col}.png")
+                        image.save(f"{outfile}-{c_image}.png")
+                        c_image += 1
+            else:
+                c_map += 1
 
     driver.close()
     driver.quit()
 
-    # Combine all the images into one, then save it to disk
-    final = combine_images(images_maps)
-    final2 = combine_images(images_satellites)
-    final.save(f"{outfile}-map.png")
-    final2.save(f"{outfile}-satellite.png")
+
+# Combine all the images into one, then save it to disk
+# final_maps = combine_images(images_maps)
+#  final_satellite = combine_images(images_satellites)
+#   final_satellite.save(f"{outfile}.png")
+#   final_maps.save(f"{outfile}-map.png")
 
 
 # if not outfile:

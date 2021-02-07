@@ -101,13 +101,11 @@ def create_map(lat_start: float, long_start: float, zoom: int,
                 elif i == 1:
                     url += '@{lat},{long},{z}z/data=!3m1!1e3'.format(lat=latitude, long=longitude, z=zoom)
 
-                print("hh")
                 driver.get(url)
                 time.sleep(5)
 
                 # Remove labels from Satellite view
                 if i == 1:
-                    print("lol")
                     js_code_execute(driver, remove_labels[0])
                     time.sleep(3)
                     js_code_execute(driver, remove_labels[1])

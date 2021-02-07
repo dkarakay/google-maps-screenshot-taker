@@ -31,10 +31,10 @@ def create_map(lat_start: float, long_start: float, zoom: int,
                scale: float = 1, sleep_time: float = 0,
                offset_left: float = 0, offset_top: float = 0,
                offset_right: float = 0, offset_bottom: float = 0,
-               outfile: str = None, count: int = 0):
-    """Create a big Google Map image from a grid of screenshots.
+               outfile: str = None, number: int = 0):
+    """
 
-    ARGS:
+    Args:
         lat_start: Top-left coordinate to start taking screenshots.
         long_start: Top-left coordinate to start taking screenshots.
         number_rows: Number of rows to take screenshot.
@@ -77,9 +77,9 @@ def create_map(lat_start: float, long_start: float, zoom: int,
     lat_shift = calc_latitude_shift(screen_height, (offset_top + offset_bottom), zoom)
     long_shift = calc_longitude_shift(screen_width, (offset_left + offset_right), zoom)
 
-    # Counting for map and image view
-    c_map = count
-    c_image = count
+    # Giving numbers for map and satellite images
+    c_map = number
+    c_image = number
 
     """
     i = 0 -> Map View

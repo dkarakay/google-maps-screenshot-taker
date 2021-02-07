@@ -1,6 +1,7 @@
 ./images
-./images-1
-./pycache
-./satellite
-./test
-./map
+
+./images-1*
+
+./satellite*
+./test*
+./map*

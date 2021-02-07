@@ -35,8 +35,8 @@ def take_screenshot(lat: float, long: float, row: int, col: int, number: int, fi
 take_screenshot(
     lat=40.0100192,  # Top left corner latitude
     long=-83.0134145,  # Top left corner longitude
-    row=2,  # 5 rows
-    col=1,  # 5 columns
+    row=5,  # 5 rows
+    col=5,  # 5 columns
     file_name="image",  # Map image: "image-map-{number}.png"
     number=0,  # Starting from 0 like image-0.png, image-1.png ...
 )

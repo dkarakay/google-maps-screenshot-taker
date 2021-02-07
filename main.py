@@ -63,11 +63,13 @@ def create_map(lat_start: float, long_start: float, zoom: int,
         offset_left: Left offset.
     """
 
+    # DRIVER Selection
     # Chromedriver should be in the current directory.
+    # Modify these commands to find proper driver Chrome or Firefox
     PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
     DRIVER_BIN = os.path.join(PROJECT_ROOT, "chromedriver")
-
     driver = webdriver.Chrome(executable_path=DRIVER_BIN)
+
     driver.maximize_window()
 
     # Calculate amount to shift lat/long each screenshot

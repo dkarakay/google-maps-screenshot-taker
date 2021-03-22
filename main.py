@@ -1,6 +1,7 @@
 import os
 import time
 import tkinter
+from datetime import datetime
 
 from PIL import Image
 import pyscreenshot
@@ -24,121 +25,6 @@ remove_labels = [
     "element.getElementsByTagName(\"button\")[1].click();",
 
 ]
-
-
-def create_map(lat_start: float, long_start: float, zoom: int,
-               number_rows: int, number_cols: int,
-               scale: float = 1, sleep_time: float = 0,
-               offset_left: float = 0, offset_top: float = 0,
-               offset_right: float = 0, offset_bottom: float = 0,
-               outfile: str = None, number: int = 0):
-    """
-
-    Args:
-        lat_start: Top-left coordinate to start taking screenshots.
-        long_start: Top-left coordinate to start taking screenshots.
-        number_rows: Number of rows to take screenshot.
-        number_cols: Number of columns to to create screenshot.
-        scale: Percent to scale each image to reduce final resolution
-            and filesize. Should be a float value between 0 and 1.
-            Recommend to leave at 1 for production, and between 0.05
-            and 0.2 for testing.
-        sleep_time: Seconds to sleep between screenshots.
-            Needed because Gmaps has some AJAX queries that will make
-            the image better a few seconds after confirming page load.
-            Recommend 0 for testing, and 3-5 seconds for production.
-        offset_*: Percent of each side to crop from screenshots.
-            Each should be a float value between 0 and 1. Offsets should
-            account for all unwanted screen elements, including:
-            taskbars, windows, multiple displays, and Gmaps UI (minimap,
-            search box, compass/zoom buttons). Defaults are set for an
-            Ubuntu laptop with left-side taskbar, and will need to be
-            tuned to the specific machine and setup where it will be run.
-        outfile: If provided, the program will save the final image to
-            this filepath. Otherwise, it will be saved in the current
-            working directory with name 'testing-<timestamp>.png'
-        offset_right: Right offset.
-        offset_top: Top offset.
-        offset_bottom: Bottom offset.
-        offset_left: Left offset.
-    """
-
-    # DRIVER Selection
-    # Chromedriver should be in the current directory.
-    # Modify these commands to find proper driver Chrome or Firefox
-    PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
-    DRIVER_BIN = os.path.join(PROJECT_ROOT, "chromedriver")
-    driver = webdriver.Chrome(executable_path=DRIVER_BIN)
-
-    driver.maximize_window()
-
-    # Calculate amount to shift lat/long each screenshot
-    screen_width, screen_height = get_screen_resolution()
-
-    # Shifting values for lat and long
-    lat_shift = calc_latitude_shift(screen_height, (offset_top + offset_bottom), zoom)
-    long_shift = calc_longitude_shift(screen_width, (offset_left + offset_right), zoom)
-
-    # Giving numbers for map and satellite images
-    c_map = number
-    c_image = number
-
-    # Writing coordinates to the file
-    f = open("coordinates.txt", "w+")
-
-    """
-    i = 0 -> Map View
-    i = 1 -> Satellite View
-    """
-    for i in range(2):
-        for row in range(number_rows):
-            for col in range(number_cols):
-
-                latitude = lat_start + (lat_shift * row)
-                longitude = long_start + (long_shift * col)
-
-                url = 'https://www.google.com/maps/'
-
-                # Map URL
-                if i == 0:
-                    url += '@{lat},{long},{z}z'.format(lat=latitude, long=longitude, z=zoom)
-                # Satellite URL
-                elif i == 1:
-                    url += '@{lat},{long},{z}z/data=!3m1!1e3'.format(lat=latitude, long=longitude, z=zoom)
-
-                driver.get(url)
-                time.sleep(5)
-
-                # Remove labels from Satellite view
-                if i == 1:
-                    js_code_execute(driver, remove_labels[0])
-                    time.sleep(3)
-                    js_code_execute(driver, remove_labels[1])
-
-                # Remove fields from Map view
-                for j in remove_from_view:
-                    js_code_execute(driver, j)
-
-                # Let the map load all assets before taking a screenshot
-                time.sleep(sleep_time)
-                image = screenshot(screen_width, screen_height, offset_left, offset_top, offset_right, offset_bottom)
-
-                # Scale image up or down if desired, then save in memory
-                image = scale_image(image, scale)
-                if i == 0:
-                    # image.save(f"{outfile}-map-{row}-{col}.png")  # To save the row-col position uncomment
-                    image.save(f"{outfile}-map-{c_map}.png")
-                    f.write(f"{outfile}-{c_map}.png -> Lat: {latitude} Long: {longitude} URL: {url} \n")
-                    c_map += 1
-                else:
-                    # image.save(f"{outfile}-{row}-{col}.png") # To save the row-col position uncomment
-                    image.save(f"{outfile}-{c_image}.png")
-                    c_image += 1
-
-    # Close the browser
-    driver.close()
-    driver.quit()
-    f.close()
 
 
 def js_code_execute(driver, js_string: str):
@@ -181,3 +67,151 @@ def scale_image(image: Image, scale: float) -> Image:
     height = round(image.height * scale)
     image.thumbnail((width, height))
     return image
+
+
+def combine_images(images: list) -> Image:
+    """Return combined image from a grid of identically-sized images.
+    images is a 2d list of Image objects. The images should
+    be already sorted/arranged when provided to this function.
+    """
+    img_width = images[0][0].width
+    img_height = images[0][0].height
+    new_size = (img_width * len(images[0]), img_height * len(images))
+    new_image = Image.new('RGB', new_size)
+
+    # Add all the images from the grid to the new, blank image
+    for rowindex, row in enumerate(images):
+        for colindex, image in enumerate(row):
+            location = (colindex * img_width, rowindex * img_height)
+            new_image.paste(image, location)
+
+    return new_image
+
+
+def create_map(lat_start: float, long_start: float, zoom: int,
+               number_rows: int, number_cols: int,
+               scale: float = 1, sleep_time: float = 0,
+               offset_left: float = 0, offset_top: float = 0,
+               offset_right: float = 0, offset_bottom: float = 0,
+               outfile: str = None, number: int = 0):
+    """
+
+    Args:
+        number: specific number?
+        lat_start: Top-left coordinate to start taking screenshots.
+        long_start: Top-left coordinate to start taking screenshots.
+        number_rows: Number of rows to take screenshot.
+        number_cols: Number of columns to to create screenshot.
+        scale: Percent to scale each image to reduce final resolution
+            and filesize. Should be a float value between 0 and 1.
+            Recommend to leave at 1 for production, and between 0.05
+            and 0.2 for testing.
+        sleep_time: Seconds to sleep between screenshots.
+            Needed because Gmaps has some AJAX queries that will make
+            the image better a few seconds after confirming page load.
+            Recommend 0 for testing, and 3-5 seconds for production.
+        offset_*: Percent of each side to crop from screenshots.
+            Each should be a float value between 0 and 1. Offsets should
+            account for all unwanted screen elements, including:
+            taskbars, windows, multiple displays, and Gmaps UI (minimap,
+            search box, compass/zoom buttons). Defaults are set for an
+            Ubuntu laptop with left-side taskbar, and will need to be
+            tuned to the specific machine and setup where it will be run.
+        outfile: If provided, the program will save the final image to
+            this filepath. Otherwise, it will be saved in the current
+            working directory with name 'testing-<timestamp>.png'
+        offset_right: Right offset.
+        offset_top: Top offset.
+        offset_bottom: Bottom offset.
+        offset_left: Left offset.
+    """
+
+    # DRIVER Selection
+    # Chromedriver should be in the current directory.
+    # Modify these commands to find proper driver Chrome or Firefox
+    PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
+    DRIVER_BIN = os.path.join(PROJECT_ROOT, "chromedriver")
+    driver = webdriver.Chrome(executable_path=DRIVER_BIN)
+
+    driver.maximize_window()
+
+    # Calculate amount to shift lat/long each screenshot
+    screen_width, screen_height = get_screen_resolution()
+
+    # Shifting values for lat and long
+    lat_shift = calc_latitude_shift(screen_height, (offset_top + offset_bottom), zoom) - 0.00021
+    long_shift = calc_longitude_shift(screen_width, (offset_left + offset_right), zoom) + 0.000595
+
+    # Giving numbers for map and satellite images
+    c_map = number
+    c_image = number
+
+    # Writing coordinates to the file
+    f = open("coordinates.txt", "w+")
+
+    images = [[None for _ in range(number_cols)]
+              for _ in range(number_rows)]
+
+    """
+    i = 0 -> Map View
+    i = 1 -> Satellite View
+    """
+    for i in range(1, 2):
+        for row in range(number_rows):
+            for col in range(number_cols):
+
+                latitude = lat_start + (lat_shift * row)
+                longitude = long_start + (long_shift * col)
+
+                url = 'https://www.google.com/maps/'
+
+                # Map URL
+                if i == 0:
+                    url += '@{lat},{long},{z}z'.format(lat=latitude, long=longitude, z=zoom)
+                # Satellite URL
+                elif i == 1:
+                    url += '@{lat},{long},{z}z/data=!3m1!1e3'.format(lat=latitude, long=longitude, z=zoom)
+
+                driver.get(url)
+                time.sleep(5)
+
+                # Remove labels from Satellite view
+                if i == 1:
+                    js_code_execute(driver, remove_labels[0])
+                    time.sleep(3)
+                    js_code_execute(driver, remove_labels[1])
+
+                # Remove fields from Map view
+                for j in remove_from_view:
+                    js_code_execute(driver, j)
+
+                # Let the map load all assets before taking a screenshot
+                time.sleep(sleep_time)
+                image = screenshot(screen_width, screen_height, offset_left, offset_top, offset_right, offset_bottom)
+
+                # Scale image up or down if desired, then save in memory
+                image = scale_image(image, scale)
+                if i == 0:
+                    # image.save(f"{outfile}-map-{row}-{col}.png")  # To save the row-col position uncomment
+                    image.save(f"{outfile}-map-{c_map}.png")
+                    f.write(f"{outfile}-{c_map}.png -> Lat: {latitude} Long: {longitude} URL: {url} \n")
+                    c_map += 1
+                else:
+                    # image.save(f"{outfile}-{row}-{col}.png") # To save the row-col position uncomment
+                    image.save(f"{outfile}-{c_image}.png")
+                    images[row][col] = image
+                    c_image += 1
+
+    # Close the browser
+    driver.close()
+    driver.quit()
+
+    # Combine all the images into one, then save it to disk
+    final = combine_images(images)
+    timestamp = datetime.now().strftime('%Y-%m-%dT%H-%M-%S')
+
+    outfile = 'test.png'
+
+    final.save(outfile)
+
+    f.close()

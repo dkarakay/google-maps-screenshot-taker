@@ -156,7 +156,7 @@ def create_map(lat_start: float, long_start: float, zoom: int,
     i = 0 -> Map View
     i = 1 -> Satellite View
     """
-    for i in range(1, 2):
+    for i in range(2):
         for row in range(number_rows):
             for col in range(number_cols):
 
@@ -208,8 +208,7 @@ def create_map(lat_start: float, long_start: float, zoom: int,
 
     # Combine all the images into one, then save it to disk
     final = combine_images(images)
-    timestamp = datetime.now().strftime('%Y-%m-%dT%H-%M-%S')
-
+    
     outfile = 'test.png'
 
     final.save(outfile)
